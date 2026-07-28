@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-ARTIFACT_DIR="/home/AutoDP/.gemini/antigravity-ide/brain/8af957b3-f68d-4fea-b698-804a76aee77c"
+# Output directory for encoded MP4s. Override with: ARTIFACT_DIR=/path/to/dir bash process_all_videos.sh
+ARTIFACT_DIR="${ARTIFACT_DIR:-$(pwd)/artifacts}"
+mkdir -p "$ARTIFACT_DIR"
 
 # Array of video and data pairs
 declare -a pairs=(
@@ -13,7 +15,7 @@ declare -a pairs=(
   "over_speed.mp4 over_speed.txt"
 )
 
-cd /home/AutoDP/jainil.bavishi/open-adas
+cd "$(dirname "$0")"
 
 for pair in "${pairs[@]}"; do
   video=$(echo "$pair" | awk '{print $1}')
@@ -22,7 +24,7 @@ for pair in "${pairs[@]}"; do
   
   echo "Processing $video..."
   
-  rm -f build/bin/direct_output.avi
+  rm -f direct_output.avi
   
   # Run simulation for 10 seconds
   QT_QPA_PLATFORM=offscreen timeout 10 ./build/bin/OpenADAS \
@@ -31,9 +33,9 @@ for pair in "${pairs[@]}"; do
     --input_data_path=data/sim_data/"$data" \
     --on_dev_machine=true || true
     
-  if [ -f build/bin/direct_output.avi ]; then
+  if [ -f direct_output.avi ]; then
     echo "Encoding $output_mp4..."
-    ffmpeg -y -hide_banner -loglevel error -i build/bin/direct_output.avi -vcodec libx264 -crf 23 "$ARTIFACT_DIR/$output_mp4"
+    ffmpeg -y -hide_banner -loglevel error -i direct_output.avi -vcodec libx264 -crf 23 "$ARTIFACT_DIR/$output_mp4"
   else
     echo "Failed to generate video for $video"
   fi
