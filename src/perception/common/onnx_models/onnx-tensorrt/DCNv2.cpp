@@ -207,10 +207,9 @@ int DCNv2Plugin::enqueue(
     int h = inputDesc[0].dims.d[2];
     int w = inputDesc[0].dims.d[3];
     
-    // TRT10's stock nvonnxparser does NOT pass ONNX initializer values through
-    // PluginFieldCollection, so _d_weight/_d_bias are invalid (allocated from empty
-    // _h_weight/_h_bias). TRT10 instead folds the weight/bias ONNX initializers into
-    // IConstantLayer outputs and delivers them as runtime tensor inputs[3] and inputs[4].
+    // Weight and bias are delivered as constant-tensor runtime inputs by TRT10's ONNX
+    // parser (inputs[3] = weight, inputs[4] = bias). Verified: configurePlugin receives
+    // nbInputs=5 matching the 5-input DCNv2 ONNX nodes.
     int out_channel = inputDesc[3].dims.d[0];
     int in_channel  = inputDesc[3].dims.d[1] * _groups;
     int kernel_H    = inputDesc[3].dims.d[2];
