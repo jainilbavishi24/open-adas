@@ -58,7 +58,7 @@ add_definitions(${Qt5Widgets_DEFINITIONS})
 
 # Executables fail to build with Qt 5 in the default configuration
 # without -fPIE. We add that here.
-set(CMAKE_CXX_FLAGS "-O3 -fsanitize=undefined -g ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS "-O3 ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
 
 option(DISABLE_UFF "Disable UFF based models" OFF)
 

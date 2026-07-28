@@ -211,27 +211,16 @@ int DCNv2Plugin::enqueue(
     int h = inputDesc[0].dims.d[2];
     int w = inputDesc[0].dims.d[3];
     
-    int out_channel = _out_channel;
-    int in_channel = _in_channel;
-    int kernel_H = _kernel_H;
-    int kernel_W = _kernel_W;
-    const float* weight_ptr = _d_weight;
-    const float* bias_ptr = _d_bias;
-
-    // Check how many inputs were provided. In TRT 10 ONNX parser, W and B are passed as inputs[3] and inputs[4].
-    // Count nbInputs by checking inputDesc (wait, enqueue doesn't have nbInputs, but we can assume if not initialized, we use inputs[3])
-    // Actually, TRT passes exactly what the ONNX parser gives.
-    // DCNv2 takes 5 inputs in ONNX.
-    bool has_wb_inputs = (weight_ptr == nullptr); // If _d_weight is null, we assume they are passed as inputs.
-    
-    if (has_wb_inputs) {
-        out_channel = inputDesc[3].dims.d[0];
-        in_channel = inputDesc[3].dims.d[1] * _groups;
-        kernel_H = inputDesc[3].dims.d[2];
-        kernel_W = inputDesc[3].dims.d[3];
-        weight_ptr = static_cast<const float*>(inputs[3]);
-        bias_ptr = static_cast<const float*>(inputs[4]);
-    }
+    // TRT10's stock nvonnxparser does NOT pass ONNX initializer values through
+    // PluginFieldCollection, so _d_weight/_d_bias are invalid (allocated from empty
+    // _h_weight/_h_bias). TRT10 instead folds the weight/bias ONNX initializers into
+    // IConstantLayer outputs and delivers them as runtime tensor inputs[3] and inputs[4].
+    int out_channel = inputDesc[3].dims.d[0];
+    int in_channel  = inputDesc[3].dims.d[1] * _groups;
+    int kernel_H    = inputDesc[3].dims.d[2];
+    int kernel_W    = inputDesc[3].dims.d[3];
+    const float* weight_ptr = static_cast<const float*>(inputs[3]);
+    const float* bias_ptr   = static_cast<const float*>(inputs[4]);
     
     int height_out = (h + 2 * _padding - (_dilation * (kernel_H - 1) + 1)) / _stride + 1;
     int width_out = (w + 2 * _padding - (_dilation * (kernel_W - 1) + 1)) / _stride + 1;
@@ -269,9 +258,9 @@ int DCNv2Plugin::enqueue(
         
         cublasSgemm(handle,
                     CUBLAS_OP_T, CUBLAS_OP_N,
-                    n, m, k,&alpha,
+                    n, m, k, &alpha,
                     _d_ones, k,
-                    bias_ptr, k,&beta,
+                    bias_ptr, m, &beta,
                     output, n);
 
         modulated_deformable_im2col_cuda(stream,input,offset,mask,
