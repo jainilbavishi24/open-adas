@@ -260,7 +260,7 @@ int DCNv2Plugin::enqueue(
                     CUBLAS_OP_T, CUBLAS_OP_N,
                     n, m, k, &alpha,
                     _d_ones, k,
-                    bias_ptr, m, &beta,
+                    bias_ptr, k, &beta,
                     output, n);
 
         modulated_deformable_im2col_cuda(stream,input,offset,mask,
