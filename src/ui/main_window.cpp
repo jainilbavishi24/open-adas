@@ -457,7 +457,7 @@ void MainWindow::startVideoGrabber() {
             static cv::VideoWriter *debug_out = nullptr;
             if (draw_frame.cols > 320) {
                 if (debug_out == nullptr) {
-                    debug_out = new cv::VideoWriter("/home/AutoDP/jainil.bavishi/open-adas/build/bin/direct_output.avi", cv::VideoWriter::fourcc('M','J','P','G'), 30, draw_frame.size());
+                    debug_out = new cv::VideoWriter("direct_output.avi", cv::VideoWriter::fourcc('M','J','P','G'), 30, draw_frame.size());
                 }
                 debug_out->write(draw_frame);
             }

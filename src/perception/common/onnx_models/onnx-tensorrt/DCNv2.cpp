@@ -125,12 +125,10 @@ nvinfer1::IPluginV2DynamicExt* DCNv2Plugin::clone() const noexcept {
 
 int DCNv2Plugin::initialize() noexcept {
     if(_initialized) return 0;
-    size_t weight_size = _h_weight.size() * sizeof(float);
-    size_t bias_size = _h_bias.size() * sizeof(float);
-    CHECK_CUDA(cudaMalloc((void**)&_d_weight, weight_size));
-    CHECK_CUDA(cudaMalloc((void**)&_d_bias, bias_size));
-    CHECK_CUDA(cudaMemcpy(_d_weight, _h_weight.data(), weight_size, cudaMemcpyHostToDevice));
-    CHECK_CUDA(cudaMemcpy(_d_bias, _h_bias.data(), bias_size, cudaMemcpyHostToDevice));
+    // NOTE: _d_weight/_d_bias are intentionally NOT allocated here.
+    // enqueue() reads weight and bias from runtime tensor inputs[3] and inputs[4],
+    // which TRT10 delivers as constant-folded device tensors (not PluginFieldCollection).
+    // _d_ones and _d_columns are allocated lazily in enqueue() on first call.
     _initialized = true;
     return 0;
 }
@@ -138,14 +136,12 @@ void DCNv2Plugin::terminate() noexcept {
     if (!_initialized) {
         return;
     }
+    // _d_weight and _d_bias are NOT freed here — they are not owned by the plugin
+    // (they point into TRT10's constant-tensor workspace, not our mallocs).
     if (_d_columns) cudaFree(_d_columns);
-    if (_d_bias) cudaFree(_d_bias);
-    if (_d_weight) cudaFree(_d_weight);
     if (_d_ones) cudaFree(_d_ones);
     _initialized = false;
     _d_columns = nullptr;
-    _d_bias = nullptr;
-    _d_weight = nullptr;
     _d_ones = nullptr;
 }
 
